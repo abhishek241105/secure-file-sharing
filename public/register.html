@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Secure File Sharing</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 400px;
+        margin: 80px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+    }
+
+    button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    button:hover {
+        opacity: 0.85;
+    }
+
+    p {
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+    <div class="container">
+
+    <h1>Secure File Sharing</h1>
+
+    <h2>Create Account</h2>
+
+    <form id="registerForm">
+
+        <input type="text" id="name" placeholder="Enter your name" required>
+        <br><br>
+
+        <input type="email" id="email" placeholder="Enter your email" required>
+        <br><br>
+
+        <input type="password" id="password" placeholder="Enter your password" required>
+        <br><br>
+
+        <button type="submit">Register</button>
+
+    </form>
+
+    <p id="message"></p>
+
+    <p>
+        Already have an account?
+        <a href="login.html">Login</a>
+    </p>
+    </div>
+
+    <script>
+        document.getElementById("registerForm").addEventListener("submit", async function(e) {
+
+            e.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            document.getElementById("message").innerText = data.message;
+
+            if (response.ok) {
+                document.getElementById("registerForm").reset();
+            }
+
+        });
+    </script>
+
+</body>
+</html>

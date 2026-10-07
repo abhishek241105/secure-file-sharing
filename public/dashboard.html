@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Secure File Sharing</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 900px;
+        margin: 40px auto;
+    }
+
+    .header {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .header h1 {
+        margin: 0;
+    }
+
+    button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+    .upload-box,
+    .files-box {
+        background: white;
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .file-item {
+        padding: 12px;
+        margin-top: 10px;
+        background: #f4f6f8;
+        border-radius: 6px;
+    }
+
+    .file-item button {
+        margin-left: 8px;
+    }
+</style>
+</head>
+<body>
+
+    <div class="container">
+
+    <div class="header">
+        <h1>Secure File Sharing</h1>
+
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="upload-box">
+
+    <h2>Upload File</h2>
+
+    <input type="file" id="fileInput">
+
+    <button onclick="uploadFile()">Upload</button>
+
+    <p id="uploadMessage"></p>
+
+</div>
+
+    <div class="files-box">
+
+    <h2>My Files</h2>
+
+    <button onclick="loadFiles()">Refresh Files</button>
+
+    <div id="fileList"></div>
+
+</div>
+</div>
+
+    <script>
+
+        const token = localStorage.getItem("token");
+
+        console.log("TOKEN:", token);
+
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        async function uploadFile() {
+
+            const fileInput = document.getElementById("fileInput");
+
+            if (fileInput.files.length === 0) {
+                document.getElementById("uploadMessage").innerText =
+                    "Please select a file";
+                return;
+            }
+
+            const formData = new FormData();
+
+            formData.append("file", fileInput.files[0]);
+
+            const response = await fetch("/api/files/upload", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            document.getElementById("uploadMessage").innerText =
+                data.message;
+
+            if (response.ok) {
+                fileInput.value = "";
+                loadFiles();
+            }
+        }
+
+
+        async function loadFiles() {
+
+            const response = await fetch("/api/files", {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            const files = await response.json();
+
+            const fileList = document.getElementById("fileList");
+
+            fileList.innerHTML = "";
+
+            files.forEach(file => {
+
+                const div = document.createElement("div");
+                div.className = "file-item";
+
+                div.innerHTML = `
+                    <p>
+                        <strong>${file.filename}</strong>
+
+                        <button onclick="downloadFile('${file._id}', '${file.filename}')">
+                            Download
+                        </button>
+
+                        <button onclick="deleteFile('${file._id}')">
+                            Delete
+                        </button>
+
+                        <button onclick="shareFile('${file._id}')">
+                            Share
+                        </button>
+                    </p>
+                `;
+
+                fileList.appendChild(div);
+
+            });
+        }
+
+
+        async function downloadFile(id, filename) {
+
+            const response = await fetch("/api/files/" + id, {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+
+            a.href = url;
+            a.download = filename;
+
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+        }
+
+
+        async function deleteFile(id) {
+
+            const response = await fetch("/api/files/" + id, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            const data = await response.json();
+
+            alert(data.message);
+
+            loadFiles();
+        }
+
+
+        async function shareFile(id) {
+
+            const response = await fetch("/api/files/" + id + "/share", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+
+                const shareLink =
+                    window.location.origin +
+                    "/api/files/shared/" +
+                    data.shareToken;
+
+                prompt("Copy this share link:", shareLink);
+
+            } else {
+
+                alert(data.message);
+
+            }
+        }
+
+
+        function logout() {
+
+            localStorage.removeItem("token");
+
+            window.location.href = "login.html";
+        }
+
+
+        loadFiles();
+
+    </script>
+
+</body>
+</html>
